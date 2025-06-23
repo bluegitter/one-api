@@ -126,37 +126,57 @@ func GetLLMCache(key string) (*LLMCacheItem, bool) {
 		return nil, false
 	}
 
-	logger.Infof(context.Background(), "GetLLMCache called, key=%s, enabled=%v", key, LLMCacheEnabled)
-
 	llmCacheMutex.RLock()
-	defer llmCacheMutex.RUnlock()
-
 	item, exists := llmCache[key]
-	if !exists {
-		llmCacheStats.Misses++
-		return nil, false
+	llmCacheMutex.RUnlock()
+	if exists {
+		// 检查是否过期
+		if time.Now().Unix() > item.ExpiresAt {
+			llmCacheMutex.Lock()
+			delete(llmCache, key)
+			llmCacheStats.TotalItems--
+			llmCacheMutex.Unlock()
+			llmCacheStats.Misses++
+			return nil, false
+		}
+		// 更新访问统计
+		item.HitCount++
+		item.LastAccessed = time.Now().Unix()
+		llmCacheStats.Hits++
+		logger.Infof(context.Background(), "LLM cache hit (memory): %s", key)
+		return item, true
 	}
 
-	// 检查是否过期
-	if time.Now().Unix() > item.ExpiresAt {
-		llmCacheMutex.RUnlock()
-		llmCacheMutex.Lock()
-		delete(llmCache, key)
-		llmCacheStats.TotalItems--
-		llmCacheMutex.Unlock()
-		llmCacheMutex.RLock()
-		llmCacheStats.Misses++
-		return nil, false
+	// 本地未命中，尝试从 Redis 获取
+	if common.RedisEnabled {
+		val, err := common.RedisGet(key)
+		if err == nil && val != "" {
+			var cacheItem LLMCacheItem
+			if err := json.Unmarshal([]byte(val), &cacheItem); err == nil {
+				// 检查是否过期
+				if time.Now().Unix() > cacheItem.ExpiresAt {
+					// Redis中也过期，删除
+					go common.RedisDel(key)
+					llmCacheStats.Misses++
+					return nil, false
+				}
+				// 回填到本地缓存
+				llmCacheMutex.Lock()
+				llmCache[key] = &cacheItem
+				llmCacheStats.TotalItems++
+				llmCacheMutex.Unlock()
+				// 更新访问统计
+				cacheItem.HitCount++
+				cacheItem.LastAccessed = time.Now().Unix()
+				llmCacheStats.Hits++
+				logger.Infof(context.Background(), "LLM cache hit (redis): %s", key)
+				return &cacheItem, true
+			}
+		}
 	}
 
-	// 更新访问统计
-	item.HitCount++
-	item.LastAccessed = time.Now().Unix()
-	llmCacheStats.Hits++
-
-	logger.Infof(context.Background(), "LLM cache hit: %s", key)
-
-	return item, true
+	llmCacheStats.Misses++
+	return nil, false
 }
 
 // SetLLMCache 设置缓存项
