@@ -99,6 +99,9 @@ func main() {
 		logger.FatalLog("failed to initialize i18n: " + err.Error())
 	}
 
+	// Initialize LLM Cache
+	model.InitLLMCache()
+
 	// Initialize HTTP server
 	server := gin.New()
 	server.Use(gin.Recovery())

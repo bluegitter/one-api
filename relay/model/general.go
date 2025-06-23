@@ -86,3 +86,20 @@ func (r GeneralOpenAIRequest) ParseInput() []string {
 	}
 	return input
 }
+
+// TextResponseChoice 文本响应选择
+type TextResponseChoice struct {
+	Index        int     `json:"index"`
+	Message      Message `json:"message"`
+	FinishReason string  `json:"finish_reason"`
+}
+
+// TextResponse 文本响应
+type TextResponse struct {
+	Id      string               `json:"id"`
+	Model   string               `json:"model,omitempty"`
+	Object  string               `json:"object"`
+	Created int64                `json:"created"`
+	Choices []TextResponseChoice `json:"choices"`
+	Usage   Usage                `json:"usage"`
+}

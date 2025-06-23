@@ -75,6 +75,16 @@ func RedisDel(key string) error {
 	return RDB.Del(ctx, key).Err()
 }
 
+func RedisSetEx(key string, value string, expirationSeconds int) error {
+	ctx := context.Background()
+	return RDB.Set(ctx, key, value, time.Duration(expirationSeconds)*time.Second).Err()
+}
+
+func RedisKeys(pattern string) ([]string, error) {
+	ctx := context.Background()
+	return RDB.Keys(ctx, pattern).Result()
+}
+
 func RedisDecrease(key string, value int64) error {
 	ctx := context.Background()
 	return RDB.DecrBy(ctx, key, value).Err()

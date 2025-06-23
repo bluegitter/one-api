@@ -117,5 +117,17 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			groupRoute.GET("/", controller.GetGroups)
 		}
+
+		// LLM缓存管理路由
+		llmCacheRoute := apiRouter.Group("/llm_cache")
+		llmCacheRoute.Use(middleware.AdminAuth())
+		{
+			llmCacheRoute.GET("/stats", controller.GetLLMCacheStats)
+			llmCacheRoute.GET("/config", controller.GetLLMCacheConfig)
+			llmCacheRoute.PUT("/config", controller.UpdateLLMCacheConfig)
+			llmCacheRoute.GET("/items", controller.GetLLMCacheItems)
+			llmCacheRoute.DELETE("/items/:key", controller.DeleteLLMCacheItem)
+			llmCacheRoute.POST("/clear", controller.ClearLLMCache)
+		}
 	}
 }

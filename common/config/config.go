@@ -150,6 +150,14 @@ var MetricSuccessRateThreshold = env.Float64("METRIC_SUCCESS_RATE_THRESHOLD", 0.
 var MetricSuccessChanSize = env.Int("METRIC_SUCCESS_CHAN_SIZE", 1024)
 var MetricFailChanSize = env.Int("METRIC_FAIL_CHAN_SIZE", 128)
 
+// LLM Cache 配置
+var LLMCacheEnabled = env.Bool("LLM_CACHE_ENABLED", false)
+var LLMCacheTTL = env.Int64("LLM_CACHE_TTL", 3600) // 1小时
+var LLMCacheMaxSize = env.Int("LLM_CACHE_MAX_SIZE", 10000)
+var LLMCacheMinResponseLength = env.Int("LLM_CACHE_MIN_RESPONSE_LENGTH", 10)
+var LLMCacheMaxResponseLength = env.Int("LLM_CACHE_MAX_RESPONSE_LENGTH", 10000)
+var LLMCacheSimilarityThreshold = env.Float64("LLM_CACHE_SIMILARITY_THRESHOLD", 0.95)
+
 var InitialRootToken = os.Getenv("INITIAL_ROOT_TOKEN")
 
 var InitialRootAccessToken = os.Getenv("INITIAL_ROOT_ACCESS_TOKEN")
