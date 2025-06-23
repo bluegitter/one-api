@@ -124,6 +124,11 @@ _✨ 通过标准的 OpenAI API 格式访问所有的大模型，开箱即用 �
     + 微信公众号授权（需要额外部署 [WeChat Server](https://github.com/songquanpeng/wechat-server)）。
 23. 支持主题切换，设置环境变量 `THEME` 即可，默认为 `default`，欢迎 PR 更多主题，具体参考[此处](./web/README.md)。
 24. 配合 [Message Pusher](https://github.com/songquanpeng/message-pusher) 可将报警信息推送到多种 App 上。
+25. 支持 LLM Cache 大模型缓存：
+    + [x] 支持对 /v1/chat/completions 非流式请求的响应进行本地和 Redis 缓存，极大提升重复请求的响应速度，降低上游消耗。
+    + [x] 支持缓存命中、过期、LRU 淘汰、缓存统计、缓存清空、缓存配置热更新、单项删除等功能。
+    + [x] 支持通过管理后台或 API 动态管理缓存。
+    + [x] 支持多实例部署下 Redis 缓存共享与自动回填。
 
 ## 部署
 ### 基于 Docker 进行部署
@@ -416,6 +421,21 @@ graph LR
 29. `ENFORCE_INCLUDE_USAGE`：是否强制在 stream 模型下返回 usage，默认不开启，可选值为 `true` 和 `false`。
 30. `TEST_PROMPT`：测试模型时的用户 prompt，默认为 `Print your model name exactly and do not output without any other text.`。
 
+#### LLM Cache 缓存相关环境变量
+
+- `LLM_CACHE_ENABLED`：是否启用大模型缓存，`true` 启用，`false` 关闭，默认 `false`
+  + 例子：`LLM_CACHE_ENABLED=true`
+- `LLM_CACHE_TTL`：缓存有效期（秒），默认 `3600`（1小时）
+  + 例子：`LLM_CACHE_TTL=3600`
+- `LLM_CACHE_MAX_SIZE`：最大缓存条数，默认 `10000`
+  + 例子：`LLM_CACHE_MAX_SIZE=10000`
+- `LLM_CACHE_MIN_RESPONSE_LENGTH`：缓存内容最小长度，默认 `10`
+  + 例子：`LLM_CACHE_MIN_RESPONSE_LENGTH=10`
+- `LLM_CACHE_MAX_RESPONSE_LENGTH`：缓存内容最大长度，默认 `10000`
+  + 例子：`LLM_CACHE_MAX_RESPONSE_LENGTH=10000`
+- `LLM_CACHE_SIMILARITY_THRESHOLD`：相似度缓存阈值（预留，当前未启用），默认 `0.95`
+  + 例子：`LLM_CACHE_SIMILARITY_THRESHOLD=0.95`
+
 ### 命令行参数
 1. `--port <port_number>`: 指定服务器监听的端口号，默认为 `3000`。
    + 例子：`--port 3000`
@@ -478,3 +498,44 @@ https://openai.justsong.cn
 同样适用于基于本项目的二开项目。
 
 依据 MIT 协议，使用者需自行承担使用本项目的风险与责任，本开源项目开发者与此无关。
+
+## LLM Cache 缓存管理 API
+
+One API 提供了丰富的 LLM Cache 管理接口，便于管理员动态查看和管理缓存。
+
+### 1. 获取缓存统计
+- **接口**：`GET /api/llm_cache/stats`
+- **说明**：获取当前缓存的命中数、未命中数、缓存项数量、命中率等统计信息。
+- **示例**：
+  ```bash
+  curl -X GET "http://localhost:3000/api/llm_cache/stats" -H "Authorization: Bearer <管理员Token>"
+  ```
+
+### 2. 获取缓存配置
+- **接口**：`GET /api/llm_cache/config`
+- **说明**：获取当前缓存配置参数。
+
+### 3. 更新缓存配置
+- **接口**：`PUT /api/llm_cache/config`
+- **说明**：动态调整缓存开关、TTL、容量等参数。
+- **示例**：
+  ```bash
+  curl -X PUT "http://localhost:3000/api/llm_cache/config" \
+    -H "Authorization: Bearer <管理员Token>" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled":true,"ttl":3600,"max_size":10000,"min_response_length":10,"max_response_length":10000,"similarity_threshold":0.95}'
+  ```
+
+### 4. 获取缓存项列表
+- **接口**：`GET /api/llm_cache/items`
+- **说明**：获取当前所有缓存项的详细信息。
+
+### 5. 删除指定缓存项
+- **接口**：`DELETE /api/llm_cache/items/:key`
+- **说明**：根据缓存 key 删除指定缓存项。
+
+### 6. 清空全部缓存
+- **接口**：`POST /api/llm_cache/clear`
+- **说明**：清空所有缓存项。
+
+> 以上接口均需管理员权限，需在 Header 中携带有效的 Bearer Token。
