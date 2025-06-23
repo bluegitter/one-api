@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/songquanpeng/one-api/common"
+	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/logger"
 	relaymodel "github.com/songquanpeng/one-api/relay/model"
 )
@@ -72,6 +73,13 @@ var (
 
 // InitLLMCache 初始化LLM缓存
 func InitLLMCache() {
+	LLMCacheEnabled = config.LLMCacheEnabled
+	LLMCacheTTL = int(config.LLMCacheTTL)
+	LLMCacheMaxSize = config.LLMCacheMaxSize
+	LLMCacheMinResponseLength = config.LLMCacheMinResponseLength
+	LLMCacheMaxResponseLength = config.LLMCacheMaxResponseLength
+	LLMCacheSimilarityThreshold = config.LLMCacheSimilarityThreshold
+
 	if !LLMCacheEnabled {
 		logger.SysLog("LLM cache disabled")
 		return
